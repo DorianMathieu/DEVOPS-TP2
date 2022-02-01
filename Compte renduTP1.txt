@@ -1,0 +1,149 @@
+
+
+Creation network :
+docker create network ntwdo
+
+Adminer :
+docker run -d --name adminerc -e AUTHOR="Dorian" -p 8080:8080 --network ntwdo  adminer
+
+BDD:
+docker run -d --name BDD -e AUTHOR="Dorian" -p 8075:8075 --network ntwdo bd
+
+-p 
+avec les port utilisé
+(à gauche port machine hote à droite port conteneur)
+
+--network
+après avoir créé le network (voir plus haut) on met le conteneur dedans
+
+--name
+reference pour le container (utilisé pour s'y connecter)
+
+Gestion creation tables dans BDD
+ajout des lignes suivantes après avoir créé les fichier (suivant le tp)
+COPY ./CreateScheme.sql ./docker-entrypoint-initdb.d
+COPY ./InsertData.sql ./docker-entrypoint-initdb.d
+
+/!\ Ici pas de pb mais il faut faire attention à l'ordre des fichier (alphabetique) 
+il faut que la création se fasse avant le remplissage on peut donc ajouter un nombre en début de fichier pour s'assurer du bon fonctionnement.
+
+Persist data :
+Ajouter la persitence des données dans /tmp/data sur la machine host
+
+on relance donc la BDD avec la commande suivante
+docker run -d --name BDD -e AUTHOR="Dorian" -v /tmp/data:/var/lib/postgresql/data -p 8075:8075 --network ntwdo bd
+
+-v
+permet de specifier un repertoir lié coté machine host : coté container
+(effet transparent si on ajoute un element dans la bd et que on la stoppe, quand elle redémarrera l'element sera toujours la)
+
+
+BACKEND
+on créé le ficher Main.java
+
+
+ajout des lignes suivantes dans un nouveau Dockerfile pour permettre de transmettre le ficher java précedement créé + build + compile
+COPY Main.java /src/
+RUN javac /src/Main.java
+CMD java /src/Main.java
+
+lancement avec la ligne suivante
+docker run --name java -e AUTHOR="Dorian"
+
+
+Multistage build
+API ajout d'un ficher GreetingController.java dans un fichier controller dans les dossier de l'API (src/main/java/....)
+
+on récupère le Dockerfile donné
+et on lance avec:
+docker run --name sapic -p 8060:8080 --network ntwdo -e AUTHOR="Dorian" sapi
+on peut maintenant acceder à l'adresse localhost:8060 et voir hello world
+
+BACKEND API
+Ajout de la config (adresse,usr,pwd) dans le fichier .yml
+ url: "jdbc:postgresql://BDD:5432/db"
+    username: usr
+    password: pwd
+
+lancement avec
+docker run --name sapicbd -p 8060:8080 --network ntwdo -e AUTHOR="Dorian" sapibd
+on peut maintenant acceder à l'adresse localhost:8060 et voir les données de la bd en ajoutant dans l'url (API foncitonnelle)
+
+HTTP SERVER
+on recupère le dockerfile indiqué sur le site https://hub.docker.com/_/httpd
+on met dans un fichier src dans le repertoir du html et on l'envoie au docker
+FROM httpd:2.4
+COPY ./src/ /usr/local/apache2/htdocs/
+
+on lance avec :
+docker run --name apache -p 8050:80 --network ntwdo -e AUTHOR="Dorian" apachei
+
+REVERSE PROXY
+On recupère le fichier de config avec 
+docker run --rm httpd:2.4 cat /usr/local/apache2/conf/httpd.conf > my-httpd.conf
+
+on ajoute les lignes données dans le TP dans le fichier de config
+<VirtualHost *:80>
+    ProxyPreserveHost On
+    ProxyPass / http://sapicbd:8080/
+    ProxyPassReverse / http://sapicbd:8080/
+</VirtualHost>
+
+et on ajoute cette ligne au Dockerfile pour permettre la copie de la conf faite sur le container
+COPY ./my-httpd.conf /usr/local/apache2/conf/httpd.conf
+
+
+on relance l'api et apache
+docker run -d --name sapicbd -p 8080:8080 --network ntwdo -e AUTHOR="Dorian" sapibd
+docker run -d --name apache -p 80:80 --network ntwdo -e AUTHOR="Dorian" apachei
+et on accède via l'adresse localhost
+
+on créé un docker-compose.yml que l'on complete comme suis (suivant les dépendances et noms de fichiers)
+version: '3.3'
+services:
+  sapibd:
+    build:
+      ./backend/simple-api-main/simple-api/
+    networks:
+      - ntwdo
+    depends_on:
+      - bd
+
+  bd:
+    build:
+      ./database/
+    networks:
+      - ntwdo
+
+  apachei:
+    build:
+      ./frontend/
+    ports:
+      - 80:80
+    networks:
+      - ntwdo
+    depends_on:
+      - sapibd
+
+networks:
+  ntwdo: 
+
+on utilise ensuite la commande suivante pour build l'ensemble
+docker-compose build
+
+et run
+docker-compose up
+
+
+PUBLISH
+commande suivante pour publish une image
+docker tag sapibd dorianmat/sapibd:1.0
+
+commande suivante pour push la publication
+docker push dorianmat/sapibd:1.0
+
+
+
+
+
+
