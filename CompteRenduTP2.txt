@@ -1,1 +1,10 @@
 TP2
+Setup Github action
+
+on vas dans le repo api>pom.xml
+lance commande :
+mvn clean verify
+
+ensuite blabla question
+
+on créé le dossier .Github/workflows et on met le .yaml dedans
