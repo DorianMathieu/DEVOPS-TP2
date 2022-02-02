@@ -7,4 +7,14 @@ mvn clean verify
 
 ensuite blabla question
 
+
+on créé les clef et token dans github
+option>secret>action
+
 on créé le dossier .Github/workflows et on met le .yaml dedans
+(penser a adapter les chemin vers les différents dockerfile)
+
+On retrouve maintenant dans le repo github>actions le workflows et permet de tester le backend (/!\ erreur maven si on a oublié de modifier le pom.xml)
+
+SONARCLOUD - quality gate
+En suivant le sujet de tp, creer un compte sonarcloud
