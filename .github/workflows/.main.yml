@@ -26,7 +26,7 @@ jobs:
       #finally build your app with the latest command
       - name: Build and test with Maven
         working-directory: ./backend/simple-api-main/simple-api
-        run:  mvn clean verify --file ./backend/simple-api-main/simple-api/pom.xml
+        run:  mvn clean verify --file ./pom.xml
 
         # define job to build and publish docker image
   build-and-push-docker-image:
